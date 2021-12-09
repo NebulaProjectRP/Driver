@@ -6,14 +6,14 @@ function NebulaDriver:ConnectMySQL()
         return;
     end
 
-    self.DB = mysqloo.connect(NebulaDriver.Config.sql.address, NebulaDriver.Config.sql.user, NebulaDriver.Config.password, NebulaDriver.Config.sql.database, NebulaDriver.Config.sql.port);
+    self.DB = mysqloo.connect(NebulaDriver.Config.sql.address, NebulaDriver.Config.sql.user, NebulaDriver.Config.sql.password, NebulaDriver.Config.sql.database, NebulaDriver.Config.sql.port);
     self.DB.onConnected = function()
         MsgC(Color(0, 255, 0), "[Nebula] Connected to MySQL database.\n");
         hook.Run("DatabaseInitialized");
         hook.Run("DatabaseCreateTables", self.MySQLCreateTable);
     end
 
-    self.DB.onError = function(db, err, sql)
+    self.DB.onConnectionFailed = function(db, err, sql)
         MsgC(Color(255, 0, 0), "[Nebula] MySQL Couldn't connect\nError: " .. err .. "\n");
     end
 
@@ -46,19 +46,22 @@ function NebulaDriver:MySQLCreateTable(name, fields, primary)
     for k, v in pairs(fields) do
         fieldString = fieldString .. "`" .. k .. "` " .. v .. ", ";
     end
-    fieldString = fieldString:sub(1, #fieldString - 2);
-    self.DB:query("CREATE TABLE IF NOT EXISTS " .. name .. "(" .. fieldString .. ") PRIMARY KEY(" .. primary .. ")");
-    self.DB:start()
+    //fieldString = fieldString:sub(1, #fieldString - 2);
+
+    local target = "CREATE TABLE IF NOT EXISTS `" .. name .. "`(" .. fieldString .. "PRIMARY KEY(" .. primary .. "));"
+    local query = self.DB:query(target);
+    query:start()
 end
 
+
 function NebulaDriver:MySQLSelect(tbl, condition, callback)
-    self.DB:query("SELECT * FROM " .. self.DB:escape(tbl) .. " WHERE " .. self.DB:escape(condition) .. ";");
-    self.DB.onSuccess = function(db, data)
+    local query = self.DB:query("SELECT * FROM " .. self.DB:escape(tbl) .. " WHERE " .. self.DB:escape(condition) .. ";");
+    query.onSuccess = function(db, data)
         if data and callback then
             callback(data);
         end
     end
-    self.DB.onError = function(db, err, sql)
+    query.onError = function(db, err, sql)
         if (shouldLog:GetBool()) then
             MsgN(string.rep("-", 16));
             debug.Trace()
@@ -66,7 +69,7 @@ function NebulaDriver:MySQLSelect(tbl, condition, callback)
         end
         MsgC(Color(255, 0, 0), "[Nebula] MySQL Couldn't select\nError: " .. err .. "\n");
     end
-    self.DB:start()
+    query:start()
 end
 
 local function valToSQL( xVal )

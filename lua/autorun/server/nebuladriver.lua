@@ -1,11 +1,11 @@
 NebulaDriver = NebulaDriver or {}
 NebulaDriver.Config = {
     sql = {
-        address = "localhost",
+        address = "127.0.0.1",
         user = "root",
         password = "",
         port = "3306",
-        database = "nebula"
+        database = "nebularp"
     },
     redis = {
         address = "localhost",
