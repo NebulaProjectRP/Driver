@@ -53,9 +53,9 @@ function NebulaDriver:MySQLCreateTable(name, fields, primary)
     query:start()
 end
 
-
 function NebulaDriver:MySQLSelect(tbl, condition, callback)
-    local query = self.DB:query("SELECT * FROM " .. self.DB:escape(tbl) .. " WHERE " .. self.DB:escape(condition) .. ";");
+    local queryStr = "SELECT * FROM " .. self.DB:escape(tbl) .. " WHERE " .. self.DB:escape(condition) .. ";"
+    local query = self.DB:query(queryStr);
     query.onSuccess = function(db, data)
         if data and callback then
             callback(data);
@@ -68,6 +68,7 @@ function NebulaDriver:MySQLSelect(tbl, condition, callback)
             MsgN(string.rep("-", 16));
         end
         MsgC(Color(255, 0, 0), "[Nebula] MySQL Couldn't select\nError: " .. err .. "\n");
+        MsgN("\n[SQL] Query error:\n" .. queryStr)
     end
     query:start()
 end
