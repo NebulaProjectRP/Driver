@@ -140,4 +140,41 @@ function NebulaDriver:MySQLUpdate( sTable, tUpdateTable, sCondition, fCallback )
     end )
 end
 
+function NebulaDriver:MySQLPlayer(ply)
+    local header = "SELECT * FROM"
+    local query = ""
+    local first = false
+    for k, call in pairs(self.Joins or {}) do
+        if not first then
+            first = true
+            header = header .. " " .. k .. "\n"
+            continue
+        end
+        query = query .. "\tLEFT JOIN\n\t" .. k .. "\n\tON " .. k .. ".steamid=" .. ply:SteamID64() .. "\n"
+    end
+
+    query = query .. "\tUNION ALL\n" .. header .. string.Replace(query, "LEFT", "RIGHT")
+    query = header .. query
+    self:MySQLQuery(query, function(data)
+        if not IsValid(ply) then return end
+        PrintTable(data)
+        if data and data[1] then
+            for k, v in pairs(self.Joins) do
+                v(ply, data[1])
+            end
+        end
+    end)
+end
+
+function NebulaDriver:MySQLHook(id, callback)
+    if not self.Joins then
+        self.Joins = {}
+    end
+    self.Joins[id] = callback
+end
+
+hook.Add("PlayerInitialSpawn", "NebulaRP.LoaderDriver", function(ply)
+    NebulaDriver:MySQLPlayer(ply)
+end)
+
 NebulaDriver:ConnectMySQL();
