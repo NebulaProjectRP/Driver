@@ -50,6 +50,11 @@ function NebulaDriver:MySQLCreateTable(name, fields, primary)
 
     local target = "CREATE TABLE IF NOT EXISTS `" .. name .. "`(" .. fieldString .. "PRIMARY KEY(" .. primary .. "));"
     local query = self.DB:query(target);
+    query.onSuccess = function()
+        if (callback) then
+            callback();
+        end
+    end
     query:start()
 end
 
