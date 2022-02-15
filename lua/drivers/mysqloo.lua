@@ -44,6 +44,15 @@ function NebulaDriver:MySQLQuery( sQuery, fSuccess, fFail )
     oQuery:start()
 end
 
+function NebulaDriver:MySQLDelete(table, where, cb)
+    if (not where or where == "") then
+        return
+    end
+
+    local query = "DELETE FROM " .. table .. " WHERE " .. where;
+    self:MySQLQuery(query, cb);
+end
+
 function NebulaDriver:MySQLCreateTable(name, fields, primary)
     local fieldString = "";
     for k, v in pairs(fields) do
