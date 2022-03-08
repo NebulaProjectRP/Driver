@@ -71,7 +71,7 @@ function NebulaDriver:MySQLCreateTable(name, fields, primary)
 end
 
 function NebulaDriver:MySQLSelect(tbl, condition, callback)
-    local queryStr = "SELECT * FROM " .. self.DB:escape(tbl) .. " WHERE " .. self.DB:escape(condition) .. ";"
+local queryStr = "SELECT * FROM " .. self.DB:escape(tbl) .. (condition and " WHERE " .. self.DB:escape(condition) .. ";" or "")
     local query = self.DB:query(queryStr);
     query.onSuccess = function(db, data)
         if data and callback then
@@ -160,7 +160,7 @@ end
 
 function NebulaDriver:MySQLPlayer(ply)
     local dataTable = {}
-    local remaining = table.Count(self.Joins)
+    local remaining = table.Count(self.Joins or {})
     for tbl, call in pairs(self.Joins or {}) do
         self:MySQLQuery("SELECT * FROM " .. tbl .. " WHERE steamid=" .. ply:SteamID64(), function(data)
             if (data and data[1]) then
