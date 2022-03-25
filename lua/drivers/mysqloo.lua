@@ -190,7 +190,7 @@ function NebulaDriver:MySQLHook(id, callback)
     if not self.Joins then
         self.Joins = {}
     end
-    MsgN("Added driver")
+    MsgC(Color(255, 200, 50), "[MYSQL]", color_white, "Added driver with ID " .. id, "\n")
     self.Joins[id] = callback
 end
 
