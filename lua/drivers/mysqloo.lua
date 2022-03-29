@@ -93,7 +93,6 @@ end
 local function valToSQL( xVal )
     if isstring( xVal ) and not string.EndsWith( xVal, "()" ) then
         xVal = "'" .. string.Replace( xVal, "'", "" ) .. "'"
-        MsgN(xVal)
         return xVal
     end
 
@@ -163,25 +162,7 @@ function NebulaDriver:MySQLPlayer(ply)
     local remaining = table.Count(self.Joins or {})
     for tbl, call in pairs(self.Joins or {}) do
         self:MySQLQuery("SELECT * FROM " .. tbl .. " WHERE steamid=" .. ply:SteamID64(), function(data)
-            if (data and data[1]) then
-                for k, v in pairs(data[1]) do
-                    if (k == "steamid") then
-                        continue;
-                    end
-                    if (dataTable[k]) then
-                        MsgC(Color(75, 100, 255), "[MYSQL]", color_white, "Duplicate key " .. k .. " in table " .. tbl .. "\n")
-                    end
-                    dataTable[k] = v
-                end
-            end
-
-            remaining = remaining - 1
-
-            if (remaining == 0) then
-                for _, cb in pairs(self.Joins) do
-                    cb(ply, dataTable)
-                end
-            end
+            self.Joins[tbl](ply, data and data[1] or nil)
         end)
     end
 end
