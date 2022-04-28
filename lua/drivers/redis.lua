@@ -1,3 +1,8 @@
+if (!file.Exists("lua/bin/gmsv_redis.core_linux.dll", "MOD")) then
+	MsgN("[Redis] Redis core DLL not found!\n")
+	return
+end
+
 require 'redis.core'
 local REDIS_CLIENT = FindMetaTable 'redis_client'
 
