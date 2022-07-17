@@ -152,7 +152,7 @@ function NebulaDriver:MySQLUpdate( sTable, tUpdateTable, sCondition, fCallback )
     local sRequest = ( "UPDATE " .. sTable .. " SET " .. sSet .. " WHERE " .. sCondition )
     self:MySQLQuery( sRequest, function( tData )
         if fCallback then
-            fCallback( tData )
+            fCallback( tData, sRequest )
         end
     end )
 end
