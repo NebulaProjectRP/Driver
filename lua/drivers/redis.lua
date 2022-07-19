@@ -1,14 +1,14 @@
-if (!file.Exists("lua/bin/gmsv_redis.core_linux.dll", "MOD")) then
+if (not file.Exists("lua/bin/gmsv_redis.core_linux.dll", "MOD")) then
 	MsgN("[Redis] Redis core DLL not found!\n")
 	return
 end
 
-require 'redis.core'
-local REDIS_CLIENT = FindMetaTable 'redis_client'
+require "redis.core"
+local REDIS_CLIENT = FindMetaTable "redis_client"
 
 local color_prefix, color_text = Color(225,0,0), Color(250,250,250)
 
-redis_clients =	redis_clients or setmetatable({}, {__mode = 'v'})
+redis_clients =	redis_clients or setmetatable({}, {__mode = "v"})
 redis_clientCount = redis_clientCount or 0
 
 function redis.GetClients()
@@ -26,55 +26,55 @@ end
 function redis.ConnectClient(hostname, port, password, database, autopoll, autocommit)
 	for k, v in ipairs(redis.GetSubscribers()) do
 		if (v.Hostname == hostname) and (v.Port == port) and (v.Password == password) and (v.Database == database) and (v.AutoPoll == autopoll) and (v.AutoCommit == autocommit) then
-			v:Log('Recycled connection.')
+			v:Log("Recycled connection.")
 			return v
 		end
 	end
 
-	local self, err = redis.CreateClient()
+	local s, err = redis.CreateClient()
 
-	if (not self) then
+	if (not s) then
 		error(err)
 	end
 
-	self.Hostname = hostname
-	self.Port = port
-	self.Password = password
-	self.AutoPoll = autopoll
-	self.AutoCommit = autocommit
-	self.Database = database or 0
-	self.PendingCommands = 0
+	s.Hostname = hostname
+	s.Port = port
+	s.Password = password
+	s.AutoPoll = autopoll
+	s.AutoCommit = autocommit
+	s.Database = database or 0
+	s.PendingCommands = 0
 
-	if (not self:TryConnect(hostname, port, password, database)) then
-		return self
+	if (not s:TryConnect(hostname, port, password, database)) then
+		return s
 	end
 
 	if (autopoll ~= false) or (autocommit ~= false) then
-		hook.Add('Think', self, function()
-			if (autocommit ~= false) and (self.PendingCommands > 0) then
-				self:Commit()
+		hook.Add("Think", s, function()
+			if (autocommit ~= false) and (s.PendingCommands > 0) then
+				s:Commit()
 			end
 			if (autopoll ~= false) then
-				self:Poll()
+				s:Poll()
 			end
 		end)
 	end
 
-	table.insert(redis_clients, self)
+	table.insert(redis_clients, s)
 	redis_clientCount = redis_clientCount + 1
 
-	return self
+	return s
 end
 
 
 -- Internal
 function REDIS_CLIENT:OnDisconnected()
-	if (not hook.Call('RedisClientDisconnected', nil, self)) then
-		self:Log('Connection Lost.')
+	if (not hook.Call("RedisClientDisconnected", nil, self)) then
+		self:Log("Connection Lost.")
 		local id = tostring(self)
-		timer.Create('RedisClientRetryConnect' .. id, 1, 0, function()
+		timer.Create("RedisClientRetryConnect" .. id, 1, 0, function()
 			if (not IsValid(self)) or self:TryConnect(self.Hostname, self.Port, self.Password, self.Database) then
-				timer.Destroy('RedisClientRetryConnect' .. id)
+				timer.Remove("RedisClientRetryConnect" .. id)
 			end
 		end)
 	end
@@ -82,7 +82,7 @@ end
 
 function REDIS_CLIENT:Wait(func, ...)
 	local dat
-	func(self, ..., function(self, ...)
+	func(self, ..., function(s, ...)
 		dat = {...}
 	end)
 
@@ -114,7 +114,7 @@ function REDIS_CLIENT:TryConnect(ip, port, password, database)
 
 	if (password ~= nil) then
 		local resp = self:Wait(self.Auth, password)
-		if (resp ~= 'OK') then
+		if (resp ~= "OK") then
 			self:Log(resp)
 			return false
 		end
@@ -122,21 +122,21 @@ function REDIS_CLIENT:TryConnect(ip, port, password, database)
 
 	if (database ~= nil) then
 		local resp = self:Wait(self.Select, database)
-		if (resp ~= 'OK') then
+		if (resp ~= "OK") then
 			self:Log(resp)
 			return false
 		end
 	end
 
-	self:Log('Connected successfully.')
+	self:Log("Connected successfully.")
 
-	hook.Call('RedisClientConnected', nil, self)
+	hook.Call("RedisClientConnected", nil, self)
 
 	return true
 end
 
 function REDIS_CLIENT:Log(message)
-	MsgC(color_prefix, '[Redis-Client] ', color_text, 'db' .. self.Database .. '@' .. self.Hostname .. ':' .. self.Port .. ' => ', tostring(message) .. '\n')
+	MsgC(color_prefix, "[Redis-Client] ", color_text, "db" .. self.Database .. "@" .. self.Hostname .. ":" .. self.Port .. " => ", tostring(message) .. "\n")
 end
 
 local send = REDIS_CLIENT.Send
@@ -159,156 +159,154 @@ end
 
 
 function REDIS_CLIENT:Auth(password, callback)
-	return self:Send({'AUTH', password}, callback)
+	return self:Send({"AUTH", password}, callback)
 end
 
 function REDIS_CLIENT:Select(database, callback)
-	return self:Send({'SELECT', database}, callback)
+	return self:Send({"SELECT", database}, callback)
 end
 
 function REDIS_CLIENT:State(callback)
-	return self:Send({'CLUSTER', 'INFO'}, callback)
+	return self:Send({"CLUSTER", "INFO"}, callback)
 end
 
 function REDIS_CLIENT:Save(callback)
-	return self:Send('BGSAVE', callback)
+	return self:Send("BGSAVE", callback)
 end
 
 function REDIS_CLIENT:LastSave(callback)
-	return self:Send('LASTSAVE', callback)
+	return self:Send("LASTSAVE", callback)
 end
 
 -- Strings: https://redis.io/commands#string
 function REDIS_CLIENT:Append(key, value, callback)
-	return self:Send({'APPEND', key, value}, callback)
+	return self:Send({"APPEND", key, value}, callback)
 end
 
 function REDIS_CLIENT:BitCount(key, value, starti, endi, callback)
-	return self:Send({'BITCOUNT', key, starti, endi}, callback)
+	return self:Send({"BITCOUNT", key, starti, endi}, callback)
 end
 
 function REDIS_CLIENT:Set(key, value, callback)
-	return self:Send({'SET', key, value}, callback)
+	return self:Send({"SET", key, value}, callback)
 end
 
 function REDIS_CLIENT:SetEx(key, secs, value, callback)
-	return self:Send({'SETEX', key, secs, value}, callback)
+	return self:Send({"SETEX", key, secs, value}, callback)
 end
 
 function REDIS_CLIENT:Get(key, callback)
-	return self:Send({'GET', key}, callback)
+	return self:Send({"GET", key}, callback)
 end
 
 function REDIS_CLIENT:Exists(key, callback)
-	return self:Send({'EXISTS', key}, callback)
+	return self:Send({"EXISTS", key}, callback)
 end
 
 function REDIS_CLIENT:Expire(key, secs, callback)
-	return self:Send({'EXPIRE', key, secs}, callback)
+	return self:Send({"EXPIRE", key, secs}, callback)
 end
 
 function REDIS_CLIENT:TTL(key, callback)
-	return self:Send({'TTL', key}, callback)
+	return self:Send({"TTL", key}, callback)
 end
 
 function REDIS_CLIENT:Delete(key, callback)
-	return self:Send({'DEL', key}, callback)
+	return self:Send({"DEL", key}, callback)
 end
 
 function REDIS_CLIENT:Publish(channel, message, callback)
-	return self:Send({'PUBLISH', channel, message}, callback)
+	return self:Send({"PUBLISH", channel, message}, callback)
 end
 
 
 -- Config
 function REDIS_CLIENT:GetConfig(param, callback)
-	return self:Send({'CONFIG', 'GET', param}, callback)
+	return self:Send({"CONFIG", "GET", param}, callback)
 end
 
 function REDIS_CLIENT:SetConfig(param, value, callback)
-	return self:Send({'CONFIG', 'SET', param, value}, callback)
+	return self:Send({"CONFIG", "SET", param, value}, callback)
 end
 
 
 -- Lists: https://redis.io/commands#list
 function REDIS_CLIENT:BLPop(key, keys, timeout, callback)
-	return self:Send({'BLPOP', key, unpack(keys), timeout}, callback)
+	return self:Send({"BLPOP", key, unpack(keys), timeout}, callback)
 end
 
 function REDIS_CLIENT:BRPop(key, keys, timeout, callback)
-	return self:Send({'BRPOP', key, unpack(keys), timeout}, callback)
+	return self:Send({"BRPOP", key, unpack(keys), timeout}, callback)
 end
 
 function REDIS_CLIENT:BRPopLPush(source, destination, callback)
-	return self:Send({'BRPOP', source, destination}, callback)
+	return self:Send({"BRPOP", source, destination}, callback)
 end
 
 function REDIS_CLIENT:LIndex(key, callback)
-	return self:Send({'LINDEX', key}, callback)
+	return self:Send({"LINDEX", key}, callback)
 end
 
 function REDIS_CLIENT:LInsert(key, value, callback)
-	return self:Send({'LINSERT', key, value}, callback)
+	return self:Send({"LINSERT", key, value}, callback)
 end
 
 function REDIS_CLIENT:LLen(key, callback)
-	return self:Send({'LLEN', key}, callback)
+	return self:Send({"LLEN", key}, callback)
 end
 
 function REDIS_CLIENT:LPop(key, callback)
-	return self:Send({'LPOP', key}, callback)
+	return self:Send({"LPOP", key}, callback)
 end
 
 function REDIS_CLIENT:LPush(key, values, callback)
-	return self:Send({'LPUSH', key, isstring(values) and values or unpack(values)}, callback)
+	return self:Send({"LPUSH", key, isstring(values) and values or unpack(values)}, callback)
 end
 
 function REDIS_CLIENT:LPushX(key, value, callback)
-	return self:Send({'LPUSHX', key, value}, callback)
+	return self:Send({"LPUSHX", key, value}, callback)
 end
 
 function REDIS_CLIENT:LRange(key, start, stop, callback)
-	return self:Send({'LRANGE', key, start, stop}, callback)
+	return self:Send({"LRANGE", key, start, stop}, callback)
 end
 
 function REDIS_CLIENT:LRem(key, count, value, callback)
-	return self:Send({'LREM', key, count, value}, callback)
+	return self:Send({"LREM", key, count, value}, callback)
 end
 
 function REDIS_CLIENT:LSet(key, index, value, callback)
-	return self:Send({'LSET', key, index, value}, callback)
+	return self:Send({"LSET", key, index, value}, callback)
 end
 
 function REDIS_CLIENT:LTrim(key, start, stop, callback)
-	return self:Send({'LSET', key, start, stop}, callback)
+	return self:Send({"LSET", key, start, stop}, callback)
 end
 
 function REDIS_CLIENT:LPop(key, callback)
-	return self:Send({'LPOP', key}, callback)
+	return self:Send({"LPOP", key}, callback)
 end
 
 function REDIS_CLIENT:RPopLPush(source, destination, callback)
-	return self:Send({'RPOPLPUSH', source, destination}, callback)
+	return self:Send({"RPOPLPUSH", source, destination}, callback)
 end
 
 function REDIS_CLIENT:RPush(key, values, callback)
-	return self:Send({'RPUSH', key, isstring(values) and values or unpack(values)}, callback)
+	return self:Send({"RPUSH", key, isstring(values) and values or unpack(values)}, callback)
 end
 
 function REDIS_CLIENT:RPushX(key, value, callback)
-	return self:Send({'PRUSHX', key, value}, callback)
+	return self:Send({"PRUSHX", key, value}, callback)
 end
 
 --https://redis.io/commands#hash
 function REDIS_CLIENT:HMGet(key, values, callback)
-	return self:Send({'HMGET', key, isstring(values) and values or unpack(values)}, callback)
+	return self:Send({"HMGET", key, isstring(values) and values or unpack(values)}, callback)
 end
 
-local REDIS_SUBSCRIBER = FindMetaTable 'redis_subscriber'
+local REDIS_SUBSCRIBER = FindMetaTable "redis_subscriber"
 
-local color_prefix, color_text = Color(225,0,0), Color(250,250,250)
-
-local subscribers =	setmetatable({}, {__mode = 'v'})
+local subscribers =	setmetatable({}, {__mode = "v"})
 local subscribercount = 0
 
 function redis.GetSubscribers()
@@ -326,59 +324,59 @@ end
 function redis.ConnectSubscriber(hostname, port, autopoll, autocommit) -- no auth like redis_clients, iptables or localhost it I suppose.
 	for k, v in ipairs(redis.GetSubscribers()) do
 		if (v.Hostname == hostname) and (v.Port == port) and (v.AutoPoll == autopoll) and (v.AutoCommit == autocommit) then
-			v:Log('Recycled connection.')
+			v:Log("Recycled connection.")
 			return v
 		end
 	end
 
-	local self, err = redis.CreateSubscriber()
+	local s, err = redis.CreateSubscriber()
 
-	if (not self) then
+	if (not s) then
 		error(err)
 	end
 
-	self.Hostname = hostname
-	self.Port = port
-	self.AutoPoll = autopoll
-	self.AutoCommit = autocommit
-	self.PendingCommands = 0
-	self.Subscriptions = {}
-	self.PSubscriptions = {}
+	s.Hostname = hostname
+	s.Port = port
+	s.AutoPoll = autopoll
+	s.AutoCommit = autocommit
+	s.PendingCommands = 0
+	s.Subscriptions = {}
+	s.PSubscriptions = {}
 
-	if (not self:TryConnect(hostname, port)) then
-		return self
+	if (not s:TryConnect(hostname, port)) then
+		return s
 	end
 
 	if (autopoll ~= false) or (autocommit ~= false) then
-		hook.Add('Think', self, function()
-			if (autocommit ~= false) and (self.PendingCommands > 0) then
-				self:Commit()
+		hook.Add("Think", s, function()
+			if (autocommit ~= false) and (s.PendingCommands > 0) then
+				s:Commit()
 			end
 			if (autopoll ~= false) then
-				self:Poll()
+				s:Poll()
 			end
 		end)
 	end
 
-	table.insert(subscribers, self)
+	table.insert(subscribers, s)
 	subscribercount = subscribercount + 1
 
-	return self
+	return s
 end
 
 
 -- Internal
 function REDIS_SUBSCRIBER:OnMessage(channel, message) -- No point in doing our own hook system
-	hook.Call('RedisSubscriberMessage', nil, self, channel, message)
+	hook.Call("RedisSubscriberMessage", nil, self, channel, message)
 end
 
 function REDIS_SUBSCRIBER:OnDisconnected()
-	if (not hook.Call('RedisSubscriberDisconnected', nil, self)) then
-		self:Log('Connection Lost.')
+	if (not hook.Call("RedisSubscriberDisconnected", nil, self)) then
+		self:Log("Connection Lost.")
 		local id = tostring(self)
-		timer.Create('RedisSubscriberRetryConnect' .. id, 1, 0, function()
+		timer.Create("RedisSubscriberRetryConnect" .. id, 1, 0, function()
 			if (not IsValid(self)) or self:TryConnect(self.Hostname, self.Port) then
-				timer.Destroy('RedisSubscriberRetryConnect' .. id)
+				timer.Remove("RedisSubscriberRetryConnect" .. id)
 			end
 		end)
 	end
@@ -394,9 +392,9 @@ function REDIS_SUBSCRIBER:TryConnect(ip, port)
 
 	self.PendingCommands = self.PendingCommands or 0
 
-	self:Log('Connected successfully.')
+	self:Log("Connected successfully.")
 
-	hook.Call('RedisSubscriberConnected', nil, self)
+	hook.Call("RedisSubscriberConnected", nil, self)
 
 	for k, v in pairs(self.Subscriptions) do
 		self:Subscribe(v.Channel, v.Callback, v.OnMessage)
@@ -410,19 +408,19 @@ function REDIS_SUBSCRIBER:TryConnect(ip, port)
 end
 
 function REDIS_SUBSCRIBER:Log(message)
-	MsgC(color_prefix, '[Redis-Subscriber] ', color_text, self.Hostname .. ':' .. self.Port .. ' => ', tostring(message) .. '\n')
+	MsgC(color_prefix, "[Redis-Subscriber] ", color_text, self.Hostname .. ":" .. self.Port .. " => ", tostring(message) .. "\n")
 end
 
-local commit = REDIS_SUBSCRIBER.Commit
+local commit_sub = REDIS_SUBSCRIBER.Commit
 function REDIS_SUBSCRIBER:Commit()
 	self.PendingCommands = 0
-	return commit(self)
+	return commit_sub(self)
 end
 
 local subscribe = REDIS_SUBSCRIBER.Subscribe
 function REDIS_SUBSCRIBER:Subscribe(channel, callback, onmessage)
 	if onmessage then
-		hook.Add('RedisSubscriberMessage', channel, function(db, _channel, message)
+		hook.Add("RedisSubscriberMessage", channel, function(db, _channel, message)
 			if (db == self) and (_channel == channel) then
 				return onmessage(self, message)
 			end
@@ -439,7 +437,7 @@ end
 
 local unsubscribe = REDIS_SUBSCRIBER.Unsubscribe
 function REDIS_SUBSCRIBER:Unsubscribe(channel, callback)
-	hook.Remove('RedisSubscriberMessage', channel)
+	hook.Remove("RedisSubscriberMessage", channel)
 	self.Subscriptions[channel] = nil
 	self.PendingCommands = self.PendingCommands + 1
 	return unsubscribe(self, channel, callback)
@@ -448,7 +446,7 @@ end
 local psubscribe = REDIS_SUBSCRIBER.PSubscribe
 function REDIS_SUBSCRIBER:PSubscribe(channel, callback, onmessage)
 	if onmessage then
-		hook.Add('RedisPSubscriberMessage', channel, function(db, _channel, message)
+		hook.Add("RedisPSubscriberMessage", channel, function(db, _channel, message)
 			if (db == self) and (_channel == channel) then
 				return onmessage(self, message)
 			end
@@ -465,7 +463,7 @@ end
 
 local punsubscribe = REDIS_SUBSCRIBER.PUnsubscribe
 function REDIS_SUBSCRIBER:PUnsubscribe(channel, callback)
-	hook.Remove('RedisPSubscriberMessage', channel)
+	hook.Remove("RedisPSubscriberMessage", channel)
 	self.PSubscriptions[channel] = nil
 	self.PendingCommands = self.PendingCommands + 1
 	return punsubscribe(self, channel, callback)
