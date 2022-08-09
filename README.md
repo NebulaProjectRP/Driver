@@ -2,7 +2,7 @@
 # IMPORTANT!
 
 Make a file called `nebula_driver_config.lua` in your `/lua/` folder and put the following in it:
-```
+```lua
 NebulaDriver.Config = {
     sql = {
         address = "<HOST>",
