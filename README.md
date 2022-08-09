@@ -12,9 +12,9 @@ NebulaDriver.Config = {
         database = "<DATABASE>"
     },
     redis = {
-        address = "145.239.205.161",
+        address = "<HOST>",
         port = 6379,
-        password = "aiCH3k5NkcNmBx4"
+        password = "<PASS>"
     }
 }
 ```
