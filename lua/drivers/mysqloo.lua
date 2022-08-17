@@ -99,7 +99,7 @@ local signs = {"+", "-", "*", "/"}
 local function valToSQL(xVal)
     if isstring(xVal) and not string.EndsWith(xVal, "()") then
         for i = 1, #signs do
-            if (string.find(xVal, v, 1, true)) then
+            if (string.find(xVal, signs[k], 1, true)) then
                 return xVal
             end
         end
