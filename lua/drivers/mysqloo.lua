@@ -94,8 +94,16 @@ function NebulaDriver:MySQLSelect(tbl, condition, callback)
     query:start()
 end
 
+local signs = {"+", "-", "*", "/"}
+
 local function valToSQL(xVal)
     if isstring(xVal) and not string.EndsWith(xVal, "()") then
+        for i = 1, #signs do
+            if (string.find(xVal, v, 1, true)) then
+                return xVal
+            end
+        end
+        
         xVal = "'" .. string.Replace(xVal, "'", "") .. "'"
 
         return xVal
