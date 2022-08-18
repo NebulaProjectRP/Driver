@@ -94,7 +94,7 @@ function NebulaDriver:MySQLSelect(tbl, condition, callback)
     query:start()
 end
 
-local signs = {"+", "-", "*", "/"}
+local signs = {"+", "-", "*"}
 
 local function valToSQL(xVal)
     if isstring(xVal) and not string.EndsWith(xVal, "()") then
