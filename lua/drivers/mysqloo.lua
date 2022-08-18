@@ -39,6 +39,9 @@ function NebulaDriver:MySQLQuery(sQuery, fSuccess, fFail)
         end
 
         MsgN("\n[SQL] Query error:\n" .. sQuery .. "\n" .. sError .. "\n")
+        if (fFail) then
+            fFail(sError)
+        end
     end
 
     oQuery:start()
@@ -115,7 +118,7 @@ local function valToSQL(xVal)
     return xVal
 end
 
-function NebulaDriver:MySQLInsert(sTable, tInsert, fCallback)
+function NebulaDriver:MySQLInsert(sTable, tInsert, fCallback, onFail)
     local sFields = ""
     local sValues = ""
     local iIter = 0
@@ -138,7 +141,7 @@ function NebulaDriver:MySQLInsert(sTable, tInsert, fCallback)
         if fCallback then
             fCallback(tData)
         end
-    end)
+    end, onFail)
 end
 
 function NebulaDriver:MySQLUpdate(sTable, tUpdateTable, sCondition, fCallback)
